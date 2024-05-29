@@ -1,0 +1,101 @@
+#include <iostream>
+#include <vector>
+#include <stack>
+#include <string>
+#include <cctype>
+#include <unordered_map>
+
+using namespace std;
+
+vector<string> strToInfix(const string& inputString) {
+    vector<string> infix;
+    string token;
+    for (size_t i = 0; i < inputString.size(); ++i) {
+        char ch = inputString[i];
+        if (isspace(ch)) continue;
+
+        if (isdigit(ch) || (ch == '-' && i != 1 && isdigit(inputString[i + 1]) && !isdigit(inputString[i - 1]) && inputString[i - 1] != '(')) {
+            token += ch;
+            if (i == inputString.size() - 1 || !isdigit(inputString[i + 1])) {
+                infix.push_back(token);
+                token.clear();
+            }
+        } else if (ch == '-' && (i == 0 || inputString[i-1] == '(' || inputString[i-1] == '+' || inputString[i-1] == '*' || inputString[i-1] == '/' || inputString[i-1] == '%')) {
+            infix.push_back("-1");
+            infix.push_back("*");
+        } else {
+            if (!token.empty()) {
+                infix.push_back(token);
+                token.clear();
+            }
+            infix.push_back(string(1, ch));
+        }
+    }
+    return infix;
+}
+
+vector<string> infixToPostfix(const vector<string>& infix) {
+    unordered_map<string, int> precedence = {{"+", 2}, {"-", 2}, {"*", 2}, {"/", 2}, {"%", 2}};
+    vector<string> postfix;
+    stack<string> st;
+
+    for (const string& token : infix) {
+        if (isdigit(token[0]) || (token.size() > 1 && token[0] == '-' && isdigit(token[1]))) {
+            postfix.push_back(token);
+        } else if (token == "(") {
+            st.push(token);
+        } else if (token == ")") {
+            while (!st.empty() && st.top() != "(") {
+                postfix.push_back(st.top());
+                st.pop();
+            }
+            st.pop();
+        } else {
+            while (!st.empty() && st.top() != "(" && precedence[st.top()] >= precedence[token]) {
+                postfix.push_back(st.top());
+                st.pop();
+            }
+            st.push(token);
+        }
+    }
+    while (!st.empty()) {
+        postfix.push_back(st.top());
+        st.pop();
+    }
+    return postfix;
+}
+
+int evaluatePostfix(const vector<string>& postfix) {
+    stack<int> st;
+    for (const string& token : postfix) {
+        if (isdigit(token[0]) || (token.size() > 1 && token[0] == '-' && isdigit(token[1]))) {
+            st.push(stoi(token));
+        } else {
+            int b = st.top(); st.pop();
+            int a = st.top(); st.pop();
+            if (token == "+") st.push(a + b);
+            else if (token == "-") st.push(a - b);
+            else if (token == "*") st.push(a * b);
+            else if (token == "/") st.push(a / b);
+            else if (token == "%") st.push(a % b);
+        }
+    }
+    return st.top();
+}
+
+void printInfixArray(const vector<string>& infix) {
+    for (const string& token : infix) {
+        cout << token << " ";
+    }
+    cout << endl;
+}
+
+int main() {
+    string inputString;
+    getline(cin, inputString);
+    
+    vector<string> infix = strToInfix(inputString);
+    vector<string> postfix = infixToPostfix(infix);
+    printInfixArray(infix);
+    return 0;
+}
